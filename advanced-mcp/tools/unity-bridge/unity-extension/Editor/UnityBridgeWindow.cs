@@ -9,9 +9,12 @@ namespace UnityBridge
     /// </summary>
     public class UnityBridgeWindow : EditorWindow
     {
+        // Ключ для сохранения настроек в EditorPrefs
+        private const string AutoStartKey = "UnityBridge.AutoStartEnabled";
+
         private string statusMessage = "";
         private Vector2 scrollPosition;
-        private bool autoStartEnabled = true;
+        private bool autoStartEnabled; // Убрали значение по умолчанию, будем грузить из Prefs
         private int serverPort = 7777;
         
         [MenuItem("Window/Unity Bridge")]
@@ -23,6 +26,9 @@ namespace UnityBridge
         
         private void OnEnable()
         {
+            // Загружаем сохраненное значение, по умолчанию true
+            autoStartEnabled = EditorPrefs.GetBool(AutoStartKey, false);
+
             // Автостарт при включении (если нужно)
             if (autoStartEnabled && !UnityBridge.IsRunning)
             {
@@ -65,7 +71,15 @@ namespace UnityBridge
             GUILayout.Label("Settings", EditorStyles.boldLabel);
             
             serverPort = EditorGUILayout.IntField("Server Port:", serverPort);
+
+            // Оборачиваем Toggle в проверку изменений
+            EditorGUI.BeginChangeCheck();
             autoStartEnabled = EditorGUILayout.Toggle("Auto Start:", autoStartEnabled);
+            if (EditorGUI.EndChangeCheck())
+            {
+                // Сохраняем новое значение, только если оно изменилось
+                EditorPrefs.SetBool(AutoStartKey, autoStartEnabled);
+            }
             
             // Кнопки управления
             EditorGUILayout.Space(10);
@@ -181,4 +195,4 @@ namespace UnityBridge
             UpdateStatus();
         }
     }
-} 
+}

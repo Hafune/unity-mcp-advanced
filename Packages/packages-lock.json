@@ -1,13 +1,5 @@
 {
   "dependencies": {
-    "com.unity-bridge": {
-      "version": "file:../advanced-mcp/tools/unity-bridge/unity-extension",
-      "depth": 0,
-      "source": "local",
-      "dependencies": {
-        "com.unity.ugui": "1.0.0"
-      }
-    },
     "com.unity.collab-proxy": {
       "version": "2.8.2",
       "depth": 0,
@@ -132,7 +124,7 @@
       }
     },
     "com.unity.visualscripting": {
-      "version": "1.9.6",
+      "version": "1.9.7",
       "depth": 0,
       "source": "registry",
       "dependencies": {
