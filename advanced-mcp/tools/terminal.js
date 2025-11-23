@@ -1,17 +1,12 @@
 /**
  * 💻 TERMINAL TOOLS - Виртуальный MCP сервер для системы
- * 
- * 🚀 Все команды для работы с системой в одном модуле!
- * Системная информация, проверка портов, процессы - всё здесь!
- * 
- * 🤯 НОВАЯ ФИЧА: АВТОМАТИЧЕСКАЯ SYSTEM INFO В КАЖДОМ ОТВЕТЕ!
- * 🖥️ НОВАЯ ФИЧА: АВТОМАТИЧЕСКИЕ СИСТЕМНЫЕ СКРИНШОТЫ (через глобальный декоратор)!
+ *
+ * Модуль содержит инструменты для взаимодействия с системным окружением:
+ * диагностика, сетевые утилиты, управление процессами и взаимодействие с пользователем.
  */
 
 import path from 'path';
 import fs from 'fs/promises';
-// Используем нативный fetch из Node.js 18+
-// 🔥 ИСПОЛЬЗУЕМ БЕЗОПАСНЫЕ ОБЁРТКИ ИЗ PROCESS HELPERS!
 import { execAsync, spawnAsync, spawnWithOutput, spawnBackground } from '../utils/processHelpers.js';
 import { logInfo, logError, extractErrorDetails } from '../utils/logger.js';
 import { getWorkspaceRoot, resolveWorkspacePath } from '../utils/workspaceUtils.js';
@@ -20,11 +15,7 @@ import { getWorkspaceRoot, resolveWorkspacePath } from '../utils/workspaceUtils.
 export const terminalTools = [
   {
     name: "echo",
-    description: "🔥 ЭХОЛОКАТОР! Твой терминальный попугай повторяет слова! 🔥\n\n" +
-      "🗣️ ГОВОРИТ ТЕБЕ: 'Скажи что-нибудь - я повторю и покажу что всё работает!'\n" +
-      "📊 ДАЕТ ДАННЫЕ: Твое сообщение в красивом формате с подтверждением\n" +
-      "💡 НАПРАВЛЯЕТ: Используй для тестирования связи с терминальными инструментами\n" +
-      "🐕 ТВОЙ ТЕРМИНАЛЬНЫЙ ПОПУГАЙ: Простейший способ проверить что MCP работает",
+    description: "Возвращает переданное сообщение. Используется для проверки работоспособности MCP сервера и тестирования связи.",
     inputSchema: {
       type: "object",
       properties: {
@@ -35,30 +26,20 @@ export const terminalTools = [
     handler: async (args, { log, logInfo, logError, logSuccess }) => {
       const { message } = args;
 
-      // 🧪 ТЕСТИРУЕМ ЛОГИРОВАНИЕ!
-      logInfo(`🧪 ТЕСТ: Получено сообщение для эха: ${message}`);
-      logSuccess(`✅ ТЕСТ: Эхо команда выполняется успешно`);
-      logError(`🔴 ТЕСТ: Это тестовая ошибка для проверки логов`);
+      logInfo(`Info: Received echo message: ${message}`);
 
-      // 🤖 ПРОСТО ВОЗВРАЩАЕМ ТЕКСТ - mcpServer автоматически обернёт в правильный формат!
-      return `🔥 **ECHO FROM TERMINAL TOOLS** 🔥\n\n` +
-        `📢 **Message:** ${message}\n\n` +
-        `✅ Эхо работает! Это Terminal Tools в действии!`;
+      return `Echo response:\nMessage: ${message}\nStatus: OK`;
     }
   },
 
   {
     name: "system_info",
-    description: "📊 СИСТЕМНЫЙ ДИАГНОСТ! Твой цифровой доктор проверяет здоровье системы! 📊\n\n" +
-      "🗣️ ГОВОРИТ ТЕБЕ: 'Покажи мне систему - расскажу всё о портах, процессах, времени!'\n" +
-      "📊 ДАЕТ ДАННЫЕ: Время MSK, статус портов, количество Node.js процессов\n" +
-      "💡 НАПРАВЛЯЕТ: include_processes=true покажет детали всех Node.js процессов\n" +
-      "🐕 ТВОЙ СИСТЕМНЫЙ ДОКТОР: Мониторит порты 1337, 3000, 3001, 8080, 5000",
+    description: "Предоставляет системную информацию: текущее время (MSK), статус ключевых портов (1337, 3000, 3001, 8080, 5000) и статистику процессов Node.js.",
     inputSchema: {
       type: "object",
       properties: {
-        include_processes: { type: "boolean", default: false, description: "Включить список процессов" },
-        max_processes: { type: "number", default: 10, description: "Максимум процессов для показа" }
+        include_processes: { type: "boolean", default: false, description: "Включить детальный список процессов Node.js" },
+        max_processes: { type: "number", default: 10, description: "Максимум процессов для вывода" }
       },
       required: []
     },
@@ -82,16 +63,16 @@ export const terminalTools = [
         const checkPort = async (port) => {
           try {
             const { stdout } = await execAsync(`lsof -i :${port}`);
-            return stdout.trim() ? '🟢 ACTIVE' : '🔴 CLOSED';
+            return stdout.trim() ? 'ACTIVE' : 'CLOSED';
           } catch {
-            return '🔴 CLOSED';
+            return 'CLOSED';
           }
         };
 
         const ports = {
           1337: await checkPort(1337),
           3000: await checkPort(3000),
-          3001: await checkPort(3001), // 🔥 ДОБАВИЛ ПОРТ 3001 ДЛЯ VS CODE МОСТА!
+          3001: await checkPort(3001),
           8080: await checkPort(8080),
           5000: await checkPort(5000)
         };
@@ -105,49 +86,43 @@ export const terminalTools = [
           nodeProcesses = 0;
         }
 
-        let systemInfo = `📊 **SYSTEM INFO FROM TERMINAL TOOLS** 📊\n\n` +
-          `🕐 **Time (MSK):** ${mskTime}\n\n` +
-          `🌐 **Port Status:**\n` +
-          `  • 1337: ${ports[1337]}\n` +
-          `  • 3000: ${ports[3000]}\n` +
-          `  • 3001: ${ports[3001]} 🔥 VS Code Bridge\n` +
-          `  • 8080: ${ports[8080]}\n` +
-          `  • 5000: ${ports[5000]}\n\n` +
-          `⚡ **Node.js Processes:** ${nodeProcesses}\n\n`;
+        let systemInfo = `System Info Report:\n` +
+            `Time (MSK): ${mskTime}\n` +
+            `Port Status:\n` +
+            `  • 1337: ${ports[1337]}\n` +
+            `  • 3000: ${ports[3000]}\n` +
+            `  • 3001: ${ports[3001]} (VS Code Bridge)\n` +
+            `  • 8080: ${ports[8080]}\n` +
+            `  • 5000: ${ports[5000]}\n` +
+            `Node.js Processes count: ${nodeProcesses}\n`;
 
         if (include_processes && nodeProcesses > 0) {
           try {
             const { stdout } = await execAsync('ps aux | grep -i node | grep -v grep');
             const processes = stdout.split('\n')
-              .filter(line => line.trim())
-              .slice(0, max_processes)
-              .map(line => {
-                const parts = line.trim().split(/\s+/);
-                return `  • PID ${parts[1]}: ${Math.round(parseFloat(parts[5]) / 1024)}MB (${parts[3]}% CPU)`;
-              });
+                .filter(line => line.trim())
+                .slice(0, max_processes)
+                .map(line => {
+                  const parts = line.trim().split(/\s+/);
+                  return `  • PID ${parts[1]}: ${Math.round(parseFloat(parts[5]) / 1024)}MB (${parts[3]}% CPU)`;
+                });
 
-            systemInfo += `📋 **Node.js Processes:**\n${processes.join('\n')}\n\n`;
+            systemInfo += `\nNode.js Processes Details:\n${processes.join('\n')}\n`;
           } catch (error) {
-            systemInfo += `❌ **Process List Error:** ${error.message}\n\n`;
+            systemInfo += `\nProcess List Error: ${error.message}\n`;
           }
         }
 
-        systemInfo += `💻 **Powered by Terminal Tools!**`;
-
         return systemInfo;
       } catch (error) {
-        throw new Error(`❌ **SYSTEM INFO ERROR** ❌\n\nError: ${error.message}`);
+        throw new Error(`System Info Error: ${error.message}`);
       }
     }
   },
 
   {
     name: "check_port",
-    description: "🔍 ПОРТОВЫЙ ИНСПЕКТОР! Твой сетевой детектив проверяет порты! 🔍\n\n" +
-      "🗣️ ГОВОРИТ ТЕБЕ: 'Дай номер порта - скажу активен он или спит!'\n" +
-      "📊 ДАЕТ ДАННЫЕ: Статус порта (ACTIVE/CLOSED) с деталями netstat\n" +
-      "💡 НАПРАВЛЯЕТ: Используй для проверки запущенных серверов и сервисов\n" +
-      "🐕 ТВОЙ СЕТЕВОЙ ДЕТЕКТИВ: Использует netstat для точной диагностики",
+    description: "Проверяет статус указанного порта (активен/закрыт) используя системную утилиту lsof.",
     inputSchema: {
       type: "object",
       properties: {
@@ -163,29 +138,20 @@ export const terminalTools = [
         const { stdout } = await execAsync(`lsof -i :${port}`);
         const isActive = stdout.trim() ? true : false;
 
-        return `🔍 **PORT CHECK FROM TERMINAL TOOLS** 🔍\n\n` +
-          `🌐 **Port:** ${port}\n` +
-          `📡 **Protocol:** ${protocol.toUpperCase()}\n` +
-          `📊 **Status:** ${isActive ? '🟢 ACTIVE' : '🔴 CLOSED'}\n\n` +
-          (isActive ? `📝 **Details:**\n\`\`\`\n${stdout.trim()}\n\`\`\`` : '💤 Port is not in use') +
-          `\n\n💻 **Checked by Terminal Tools!**`;
+        return `Port Check Result:\n` +
+            `Port: ${port}\n` +
+            `Protocol: ${protocol.toUpperCase()}\n` +
+            `Status: ${isActive ? 'ACTIVE' : 'CLOSED'}\n` +
+            (isActive ? `\nDetails:\n${stdout.trim()}` : '');
       } catch (error) {
-        throw new Error(`❌ **PORT CHECK ERROR** ❌\n\n` +
-          `🌐 **Port:** ${port}\n` +
-          `📡 **Protocol:** ${protocol.toUpperCase()}\n` +
-          `💥 **Error:** ${error.message}`);
+        throw new Error(`Port Check Error (Port: ${port}): ${error.message}`);
       }
     }
   },
 
-  // 🔥 НОВЫЕ СТАБИЛЬНЫЕ ИНСТРУМЕНТЫ ДЛЯ MACOS!
   {
     name: "find_process",
-    description: "🔍 ОХОТНИК ЗА ПРОЦЕССАМИ! Твой системный следопыт находит программы! 🔍\n\n" +
-      "🗣️ ГОВОРИТ ТЕБЕ: 'Дай имя программы - найду все её процессы в системе!'\n" +
-      "📊 ДАЕТ ДАННЫЕ: Список найденных процессов с PID и использованием памяти\n" +
-      "💡 НАПРАВЛЯЕТ: Используй для поиска node, chrome, любых программ\n" +
-      "🐕 ТВОЙ СИСТЕМНЫЙ СЛЕДОПЫТ: Использует ps aux для надежного поиска процессов",
+    description: "Ищет запущенные процессы по имени используя ps aux. Возвращает PID, использование памяти и CPU.",
     inputSchema: {
       type: "object",
       properties: {
@@ -201,30 +167,19 @@ export const terminalTools = [
         const result = stdout.trim();
 
         if (result) {
-          return `🔍 **PROCESS FOUND** 🔍\n\n` +
-            `📋 **Search:** ${name}\n\n` +
-            `📝 **Results:**\n\`\`\`\n${result}\n\`\`\`\n\n` +
-            `💻 **Found by Terminal Tools!**`;
+          return `Process Search Result (${name}):\n\n${result}`;
         } else {
-          throw new Error(`❌ **PROCESS NOT FOUND** ❌\n\n` +
-            `📋 **Search:** ${name}\n` +
-            `💤 **Status:** No processes found with this name`);
+          throw new Error(`No processes found matching name: ${name}`);
         }
       } catch (error) {
-        throw new Error(`❌ **PROCESS SEARCH ERROR** ❌\n\n` +
-          `📋 **Search:** ${name}\n` +
-          `💥 **Error:** ${error.message}`);
+        throw new Error(`Process Search Error: ${error.message}`);
       }
     }
   },
 
   {
     name: "safe_curl",
-    description: "🌐 ВЕБЛОКАТОР! Твой HTTP-курьер доставляет запросы без глюков! 🌐\n\n" +
-      "🗣️ ГОВОРИТ ТЕБЕ: 'Дай URL - отправлю GET/POST/PUT/DELETE запрос надежно!'\n" +
-      "📊 ДАЕТ ДАННЫЕ: Ответ сервера, статус код, заголовки, тело ответа\n" +
-      "💡 НАПРАВЛЯЕТ: Используй для API тестирования без проблем curl\n" +
-      "🐕 ТВОЙ HTTP КУРЬЕР: Стабильные запросы через нативный fetch Node.js",
+    description: "Выполняет HTTP запросы (GET, POST, PUT, DELETE) к указанному URL используя curl.",
     inputSchema: {
       type: "object",
       properties: {
@@ -250,48 +205,37 @@ export const terminalTools = [
 
         const { stdout, stderr } = await execAsync(cmd);
 
-        let response = `🌐 **HTTP REQUEST** 🌐\n\n` +
-          `📡 **Method:** ${method}\n` +
-          `🔗 **URL:** ${url}\n`;
+        let response = `HTTP Request (${method} ${url})\n`;
 
         if (data) {
-          response += `📝 **Data:** ${data}\n`;
+          response += `Data: ${data}\n`;
         }
 
-        response += `\n📋 **Response:**\n\`\`\`\n${stdout}\n\`\`\``;
+        response += `\nResponse:\n${stdout}`;
 
         if (stderr) {
-          response += `\n\n⚠️ **Warnings:**\n\`\`\`\n${stderr}\n\`\`\``;
+          response += `\n\nWarnings:\n${stderr}`;
         }
-
-        response += `\n\n💻 **Powered by Terminal Tools!**`;
 
         return response;
       } catch (error) {
-        throw new Error(`❌ **HTTP REQUEST ERROR** ❌\n\n` +
-          `📡 **Method:** ${method}\n` +
-          `🔗 **URL:** ${url}\n` +
-          `💥 **Error:** ${error.message}`);
+        throw new Error(`HTTP Request Error (${method} ${url}): ${error.message}`);
       }
     }
   },
 
   {
     name: "wait_for_user",
-    description: "⏳ ИНТЕРАКТИВНЫЙ ПОМОЩНИК! Твой человеческий интерфейс для вопросов и уточнений! ⏳\n\n" +
-      "🗣️ ГОВОРИТ ТЕБЕ: 'Нужно что-то спросить? Покажу вопрос пользователю и получу его ответ!'\n" +
-      "📊 ДАЕТ ДАННЫЕ: Текстовый ответ пользователя на твой вопрос или подтверждение действия\n" +
-      "💡 НАПРАВЛЯЕТ: expect_answer=true для получения текста, false для простого подтверждения\n" +
-      "🐕 ТВОЙ ИНТЕРАКТИВНЫЙ ИНТЕРФЕЙС: Мост между ИИ и человеком для диалога и уточнений",
+    description: "Запрашивает ввод текста или подтверждение действия от пользователя через системные диалоговые окна.",
     inputSchema: {
       type: "object",
       properties: {
         request: { type: "string", description: "Вопрос или просьба к пользователю" },
         details: { type: "string", description: "Дополнительные детали (опционально)" },
-        expect_answer: { 
-          type: "boolean", 
-          default: false, 
-          description: "true = ожидать текстовый ответ, false = простое подтверждение" 
+        expect_answer: {
+          type: "boolean",
+          default: false,
+          description: "true = ожидать текстовый ответ, false = простое подтверждение"
         },
         answer_placeholder: {
           type: "string",
@@ -302,72 +246,69 @@ export const terminalTools = [
       required: ["request"]
     },
     handler: async (args) => {
-      const { 
-        request, 
-        details = '', 
+      const {
+        request,
+        details = '',
         expect_answer = false,
         answer_placeholder = "Введите ваш ответ..."
       } = args;
       const os = process.platform;
-      
-      const title = expect_answer ? "❓ ВОПРОС ОТ ИИ ❓" : "⏳ ПРОСЬБА К ПОЛЬЗОВАТЕЛЮ ⏳";
-      const fullRequest = details 
-        ? `🎯 ${request}\n\n📝 Детали: ${details}`
-        : `🎯 ${request}`;
+
+      const title = expect_answer ? "Вопрос от AI" : "Запрос действия";
+      const fullRequest = details
+          ? `${request}\n\nДетали: ${details}`
+          : request;
 
       try {
         if (os === 'darwin') {
           if (expect_answer) {
-            // macOS: диалог с полем ввода для получения ответа
+            // macOS: диалог с полем ввода
             const script = `display dialog "${fullRequest.replace(/"/g, '\\"')}" with title "${title}" default answer "${answer_placeholder}" buttons {"Отправить", "Отмена"} default button "Отправить"`;
             try {
               const { stdout } = await execAsync(`osascript -e '${script}'`);
-              // Извлекаем введенный текст из ответа osascript
               const match = stdout.match(/text returned:(.+)/);
               if (match) {
-                const userAnswer = match[1].trim();
-                return `💬 **ОТВЕТ ПОЛЬЗОВАТЕЛЯ:**\n\n"${userAnswer}"`;
+                return `User Answer: "${match[1].trim()}"`;
               } else {
-                throw new Error("❌ Не удалось получить ответ пользователя.");
+                throw new Error("Failed to retrieve user input.");
               }
             } catch (error) {
-              throw new Error("❌ Пользователь отменил ввод ответа.");
+              throw new Error("User cancelled input.");
             }
           } else {
-            // macOS: простое подтверждение (старая логика)
+            // macOS: простое подтверждение
             const script = `display dialog "${fullRequest.replace(/"/g, '\\"')}" with title "${title}" buttons {"Выполнено", "Отмена"} default button "Выполнено"`;
             try {
               const { stdout } = await execAsync(`osascript -e '${script}'`);
               if (stdout.includes("Выполнено")) {
-                return "✅ Пользователь подтвердил выполнение.";
+                return "User confirmed execution.";
               } else {
-                throw new Error("❌ Пользователь отменил операцию.");
+                throw new Error("User cancelled operation.");
               }
             } catch (error) {
-              throw new Error("❌ Пользователь отменил операцию.");
+              throw new Error("User cancelled operation.");
             }
           }
         } else {
-          // Windows/Linux: используем старый метод с терминалом
+          // Windows/Linux fallback
           if (expect_answer) {
-            // Для других ОС пока оставляем упрощенную версию
             const command = os === 'win32'
-              ? `start cmd /k "echo ${title} && echo. && echo ${fullRequest} && echo. && echo 📝 Введите ваш ответ в чат Cursor && echo. && pause"`
-              : `x-terminal-emulator -e "bash -c 'echo \\"${title}\\"; echo; echo \\"${fullRequest}\\"; echo; echo \\"📝 Введите ваш ответ в чат Cursor\\"; read -p \\"Нажмите Enter...\\"'"`
-            
-            await spawnBackground(command);
-            return "❓ Пожалуйста, введите ваш ответ в следующем сообщении в чате.";
-          } else {
-            const command = os === 'win32' 
-              ? `start cmd /k "echo ${title} && echo. && echo ${fullRequest} && echo. && echo ✅ Закрой этот терминал когда выполнишь && echo. && echo 🤝 Жду твоего действия... && echo. && pause"`
-              : `x-terminal-emulator -e "bash -c 'echo \\"${title}\\"; echo; echo \\"${fullRequest}\\"; echo; read -p \\"Нажмите Enter, когда закончите...\\"'"`
+                ? `start cmd /k "echo ${title} && echo. && echo ${fullRequest} && echo. && echo Please type your answer in Cursor chat && echo. && pause"`
+                : `x-terminal-emulator -e "bash -c 'echo \\"${title}\\"; echo; echo \\"${fullRequest}\\"; echo; echo \\"Please type your answer in Cursor chat\\"; read -p \\"Press Enter...\\"'"`
 
             await spawnBackground(command);
-            return "⏳ Ожидание пользователя... Пожалуйста, следуйте инструкциям в новом окне терминала.";
+            return "Waiting for user input in chat...";
+          } else {
+            const command = os === 'win32'
+                ? `start cmd /k "echo ${title} && echo. && echo ${fullRequest} && echo. && echo Close this window when done && echo. && pause"`
+                : `x-terminal-emulator -e "bash -c 'echo \\"${title}\\"; echo; echo \\"${fullRequest}\\"; echo; read -p \\"Press Enter when done...\\"'"`
+
+            await spawnBackground(command);
+            return "Waiting for user confirmation...";
           }
         }
       } catch (error) {
-        throw new Error(`❌ **ОШИБКА ИНТЕРАКТИВНОГО ИНТЕРФЕЙСА** ❌\n\n💥 ${error.message}`);
+        throw new Error(`Interaction Error: ${error.message}`);
       }
     }
   }
@@ -378,16 +319,3 @@ export const terminalModule = {
   description: "Системные инструменты",
   tools: terminalTools
 };
-
-/**
- * 💻 TERMINAL TOOLS - МОДУЛЬ ЗАВЕРШЁН!
- * 
- * ✅ Все системные команды в одном месте
- * ✅ Проверка портов и процессов
- * ✅ Чистый экспорт для импорта в index.js
- * ✅ 🤯 АВТОМАТИЧЕСКАЯ SYSTEM INFO В КАЖДОМ ОТВЕТЕ!
- * ✅ Готов к использованию!
- */
-
-
-

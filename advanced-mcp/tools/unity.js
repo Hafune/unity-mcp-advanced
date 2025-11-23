@@ -1,10 +1,8 @@
 /**
- * Unity Bridge MCP Module - Прозрачный мост
- * 
- * Новая упрощенная архитектура:
- * • Unity возвращает готовый массив messages
- * • JS просто передает данные без обработки
- * • Максимальная прозрачность связи
+ * Unity Bridge MCP Module
+ *
+ * Модуль обеспечивает взаимодействие с Unity Editor через HTTP API.
+ * Позволяет выполнять C# код, анализировать сцену и делать скриншоты.
  */
 
 import axios from 'axios';
@@ -12,13 +10,13 @@ import axios from 'axios';
 const UNITY_BASE_URL = 'http://localhost:7777';
 
 /**
- * Конвертер Unity messages в MCP формат
+ * Преобразует ответ Unity в формат MCP.
+ * Поддерживает новый формат { messages: [] } и legacy-формат.
  */
 function convertToMCPResponse(unityResponse) {
-  // Новая Unity архитектура возвращает { messages: [...] }
   if (unityResponse.messages && Array.isArray(unityResponse.messages)) {
     const content = [];
-    
+
     for (const msg of unityResponse.messages) {
       if (msg.type === 'text') {
         content.push({
@@ -26,14 +24,12 @@ function convertToMCPResponse(unityResponse) {
           text: msg.content
         });
       } else if (msg.type === 'image') {
-        // Добавляем описание изображения если есть
         if (msg.text) {
           content.push({
-            type: 'text', 
+            type: 'text',
             text: msg.text
-              });
-            }
-        // Затем само изображение
+          });
+        }
         content.push({
           type: 'image',
           data: msg.content,
@@ -41,37 +37,33 @@ function convertToMCPResponse(unityResponse) {
         });
       }
     }
-    
+
     return { content };
   }
-  
-  // Fallback для старого формата Unity API
+
   return convertLegacyResponse(unityResponse);
-    }
+}
 
 /**
- * Fallback для старого формата Unity (временно)
+ * Обработчик устаревшего формата ответов Unity.
  */
 function convertLegacyResponse(unityData) {
   const content = [];
-        
-  // Основное сообщение
+
   if (unityData.message) {
     content.push({
       type: 'text',
       text: unityData.message
     });
   }
-  
-  // Данные результата
+
   if (unityData.data && unityData.data !== unityData.message) {
     content.push({
-      type: 'text', 
+      type: 'text',
       text: unityData.data
     });
   }
-  
-  // Изображение для скриншотов
+
   if (unityData.image) {
     content.push({
       type: 'text',
@@ -83,8 +75,7 @@ function convertLegacyResponse(unityData) {
       mimeType: 'image/png'
     });
   }
-  
-  // Ошибки Unity
+
   if (unityData.errors && unityData.errors.length > 0) {
     const errorText = unityData.errors.map(err => {
       if (typeof err === 'object') {
@@ -94,49 +85,46 @@ function convertLegacyResponse(unityData) {
       }
       return err.toString();
     }).join('\n');
-    
+
     content.push({
       type: 'text',
       text: `Unity Logs:\n${errorText}`
     });
   }
-  
-  // Если нет контента, добавляем статус
+
   if (content.length === 0) {
     content.push({
       type: 'text',
       text: `Unity Status: ${unityData.status || 'Unknown'}`
     });
   }
-  
+
   return { content };
-  }
-  
+}
+
 /**
- * Универсальный обработчик Unity запросов
+ * Выполняет HTTP запрос к Unity API.
  */
 async function handleUnityRequest(endpoint, data = {}, timeout = 10000) {
   try {
-    // 🚀 Убеждаемся что данные корректно сериализуются в UTF-8
     const jsonData = JSON.stringify(data);
-    
+
     const response = await axios.post(`${UNITY_BASE_URL}${endpoint}`, jsonData, {
       timeout,
       responseType: 'json',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json; charset=utf-8',
         'Accept': 'application/json; charset=utf-8'
       }
     });
-    
+
     return convertToMCPResponse(response.data);
   } catch (error) {
     const errorContent = [{
       type: 'text',
-      text: `Unity Connection Error: ${error.message}\n\nПроверьте:\n• Unity запущен\n• Unity Bridge Window открыт\n• HTTP сервер работает на порту 7777`
+      text: `Unity Connection Error: ${error.message}\nCheck: Unity running, Bridge Window open, Port 7777 active.`
     }];
-    
-    // Добавляем детали ошибки если есть
+
     if (error.response?.data) {
       try {
         const unityError = convertToMCPResponse(error.response.data);
@@ -148,23 +136,22 @@ async function handleUnityRequest(endpoint, data = {}, timeout = 10000) {
         });
       }
     }
-    
+
     return { content: errorContent };
-        }
+  }
 }
 
-// Unity инструменты
 const unityTools = [
   {
     name: "screenshot",
-    description: 'Unity Game View скриншот',
+    description: 'Делает скриншот окна Game View в Unity.',
     inputSchema: {
       type: 'object',
       properties: {
         systemScreenshot: {
           type: 'boolean',
           default: false,
-          description: '🖥️ Включить скриншот рабочего стола. ИСПОЛЬЗОВАТЬ ТОЛЬКО ПРИ СТРОГОЙ НЕОБХОДИМОСТИ УВИДЕТЬ ЭКРАН ПОЛЬЗОВАТЕЛЯ И НЕ ИСПОЛЬЗОВАТЬ ПРОСТО ТАК!'
+          description: 'Включить скриншот всего рабочего стола. Использовать только при крайней необходимости.'
         }
       },
       required: []
@@ -173,10 +160,10 @@ const unityTools = [
       return await handleUnityRequest('/api/screenshot');
     }
   },
-  
+
   {
-    name: "camera_screenshot", 
-    description: 'Unity скриншот с произвольной позиции камеры',
+    name: "camera_screenshot",
+    description: 'Делает скриншот с произвольной позиции камеры в сцене.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -188,7 +175,7 @@ const unityTools = [
           description: 'Позиция камеры [x, y, z]'
         },
         target: {
-          type: 'array', 
+          type: 'array',
           items: { type: 'number' },
           minItems: 3,
           maxItems: 3,
@@ -199,26 +186,26 @@ const unityTools = [
           default: 1920,
           minimum: 256,
           maximum: 4096,
-          description: 'Ширина скриншота в пикселях'
+          description: 'Ширина скриншота (px)'
         },
         height: {
           type: 'number',
           default: 1080,
           minimum: 256,
           maximum: 4096,
-          description: 'Высота скриншота в пикселях'
+          description: 'Высота скриншота (px)'
         },
         fov: {
           type: 'number',
           default: 60,
           minimum: 10,
           maximum: 179,
-          description: 'Поле зрения камеры в градусах'
+          description: 'FOV камеры'
         },
         systemScreenshot: {
           type: 'boolean',
           default: false,
-          description: '🖥️ Включить скриншот рабочего стола. ИСПОЛЬЗОВАТЬ ТОЛЬКО ПРИ СТРОГОЙ НЕОБХОДИМОСТИ УВИДЕТЬ ЭКРАН ПОЛЬЗОВАТЕЛЯ И НЕ ИСПОЛЬЗОВАТЬ ПРОСТО ТАК!'
+          description: 'Включить скриншот всего рабочего стола. Использовать только при крайней необходимости.'
         }
       },
       required: ['position', 'target']
@@ -231,26 +218,26 @@ const unityTools = [
         width: params.width || 1920,
         height: params.height || 1080
       };
-      
+
       return await handleUnityRequest('/api/camera_screenshot', requestBody, 20000);
     }
   },
 
   {
     name: "scene_hierarchy",
-    description: 'Unity сцена: анализ объектов и иерархии',
+    description: 'Анализирует иерархию сцены и возвращает список объектов.',
     inputSchema: {
       type: 'object',
       properties: {
         detailed: {
           type: 'boolean',
           default: false,
-          description: 'Детальный режим: false - только имена и структура, true - + позиция, компоненты, свойства'
+          description: 'Детальный режим: включает позицию, компоненты и свойства объектов.'
         },
         systemScreenshot: {
           type: 'boolean',
           default: false,
-          description: '🖥️ Включить скриншот рабочего стола. ИСПОЛЬЗОВАТЬ ТОЛЬКО ПРИ СТРОГОЙ НЕОБХОДИМОСТИ УВИДЕТЬ ЭКРАН ПОЛЬЗОВАТЕЛЯ И НЕ ИСПОЛЬЗОВАТЬ ПРОСТО ТАК!'
+          description: 'Включить скриншот всего рабочего стола. Использовать только при крайней необходимости.'
         }
       },
       required: []
@@ -259,34 +246,45 @@ const unityTools = [
       const requestBody = {
         detailed: params.detailed || false
       };
-      
+
       return await handleUnityRequest('/api/scene_hierarchy', requestBody, 15000);
     }
   },
 
   {
     name: "execute",
-    description: 'Unity C# Code Executor - выполнение C# кода в Unity Editor.\n\n✅ **ПОДДЕРЖИВАЕТСЯ:**\n*   Простые классы с методами и конструкторами\n*   Локальные функции (автоматически `static`)\n*   Полный Unity API (`GameObject`, `Transform`, `Material`, `Rigidbody`, etc.)\n*   LINQ операции (`Where`, `Select`, `GroupBy`, `Sum`, etc.)\n*   Циклы, коллекции, математические вычисления\n*   `Using statements`, многострочный код\n\n❌ **НЕ ПОДДЕРЖИВАЕТСЯ:**\n*   Интерфейсы, абстрактные классы, наследование\n*   Внешние библиотеки (JSON.NET, System.IO)\n*   Атрибуты `[Serializable]`, `[System.Flags]`\n*   Сложная инициализация массивов в классах\n\n⚠️ **ВАЖНО: Правила возврата значений (`return`)**\n*   Весь код выполняется внутри метода, который должен вернуть объект (`public static object Execute()`).\n*   Пустой `return;` вызовет ошибку компиляции.\n*   Для прерывания кода и возврата результата используйте `return "ваше сообщение";` или `return null;`.\n*   Возврат строки с ошибкой (например, `return "Error: Объект не найден";`) — лучший способ сообщить ассистенту о проблеме.\n\n🎯 **ПРИМЕРЫ:**\n*   Создание объектов: `GameObject.CreatePrimitive(PrimitiveType.Cube)`\n*   Классы: `public class Builder { public GameObject Create() {...} }`\n*   Функции: `GameObject CreateCube(Vector3 pos) {...}`\n*   LINQ: `objects.Where(o => o.name.Contains("Test")).ToList()',
+    description: 'Выполняет C# код в Unity Editor. Код оборачивается в метод, поэтому соблюдайте строгие правила структуры.\n\n' +
+        '⚠️ **ПРАВИЛА НАПИСАНИЯ КОДА:**\n' +
+        '1. **Контекст исполнения**: Ваш код (кроме классов) помещается ВНУТРЬ статического метода `Execute()`. Пишите логику сразу, как в теле функции.\n' +
+        '2. **Методы**: ЗАПРЕЩЕНО объявлять методы с модификаторами (`public void Foo()`) вне классов — это вызовет ошибку. Используйте локальные функции (без модификаторов) или методы внутри своих классов.\n' +
+        '3. **Классы**: Вы МОЖЕТЕ объявлять классы (`public class MyHelper { ... }`). Инструмент извлечет их из метода и поместит рядом.\n' +
+        '4. **Возврат значения**: Используйте `return value;` чтобы вернуть результат в чат. Иначе вернется стандартное сообщение.\n' +
+        '5. **Namespaces**: НЕ оборачивайте код в `namespace`. \n' +
+        '6. **Using**: Базовые (`UnityEngine`, `UnityEditor`) уже подключены. Свои добавляйте в начало.\n\n' +
+        '✅ **Пример правильного кода:**\n' +
+        '`var obj = new GameObject("Test"); return obj.name;`\n\n' +
+        '❌ **Пример ошибки:**\n' +
+        '`public void Start() { ... }` (нельзя метод внутри метода)',
     inputSchema: {
       type: 'object',
       properties: {
         code: {
           type: 'string',
-          description: 'C# код для выполнения в Unity Editor'
+          description: 'C# код для выполнения'
         },
         systemScreenshot: {
           type: 'boolean',
           default: false,
-          description: '🖥️ Включить скриншот рабочего стола. ИСПОЛЬЗОВАТЬ ТОЛЬКО ПРИ СТРОГОЙ НЕОБХОДИМОСТИ УВИДЕТЬ ЭКРАН ПОЛЬЗОВАТЕЛЯ И НЕ ИСПОЛЬЗОВАТЬ ПРОСТО ТАК!'
+          description: 'Включить скриншот всего рабочего стола. Использовать только при крайней необходимости.'
         }
       },
       required: ['code']
     },
     handler: async (params) => {
-        const requestBody = {
+      const requestBody = {
         code: params.code
       };
-      
+
       return await handleUnityRequest('/api/execute', requestBody, 30000);
     }
   }
@@ -294,11 +292,11 @@ const unityTools = [
 
 export const unityModule = {
   name: 'unity',
-  description: 'Unity Bridge: прозрачный мост AI ↔ Unity3D. Выполнение любого C# кода, скриншоты, анализ сцены.',
+  description: 'Unity Bridge: Инструменты для взаимодействия с Unity Editor (Code Execution, Scene Analysis, Screenshots).',
   tools: unityTools,
-  
+
   decorators: {
     disableSystemInfo: true,
     disableDebugLogs: true
   }
-}; 
+};
